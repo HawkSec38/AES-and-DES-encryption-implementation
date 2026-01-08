@@ -9,6 +9,7 @@ Features:
 - Interactive command-line interface for encryption/decryption
 - Base64 encoded output for easy sharing
 - Support for multiline text input
+- File encryption and decryption support
 - Error handling and validation
 """
 
@@ -142,6 +143,56 @@ class AESCrypto:
         except Exception as e:
             raise ValueError("Decryption failed. Wrong password or corrupted data.") from e
 
+    def encrypt_file(self, input_path: str, output_path: str, password: str):
+        """
+        Encrypt a text file.
+        
+        Args:
+            input_path (str): Path to the input file
+            output_path (str): Path to save encrypted file
+            password (str): Password for encryption
+        """
+        try:
+            # Read the file content
+            with open(input_path, 'r', encoding='utf-8') as f:
+                plaintext = f.read()
+            
+            # Encrypt the content
+            encrypted = self.encrypt(plaintext, password)
+            
+            # Write encrypted content to output file
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(encrypted)
+                
+            return True
+        except Exception as e:
+            raise Exception(f"File encryption failed: {e}")
+    
+    def decrypt_file(self, input_path: str, output_path: str, password: str):
+        """
+        Decrypt a text file.
+        
+        Args:
+            input_path (str): Path to the encrypted file
+            output_path (str): Path to save decrypted file
+            password (str): Password for decryption
+        """
+        try:
+            # Read the encrypted file content
+            with open(input_path, 'r', encoding='utf-8') as f:
+                encrypted_text = f.read()
+            
+            # Decrypt the content
+            decrypted = self.decrypt(encrypted_text, password)
+            
+            # Write decrypted content to output file
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(decrypted)
+                
+            return True
+        except Exception as e:
+            raise Exception(f"File decryption failed: {e}")
+
 
 class InteractiveAES:
     """Interactive AES Encryption Tool"""
@@ -166,15 +217,17 @@ class InteractiveAES:
         print("\n📋 Choose an operation:")
         print("1. 🔒 Encrypt Text")
         print("2. 🔓 Decrypt Text")
-        print("3. 🚪 Exit")
+        print("3. 📄 Encrypt File")
+        print("4. 📂 Decrypt File")
+        print("5. 🚪 Exit")
         print("-" * 40)
         
         while True:
-            choice = input("Enter your choice (1-3): ").strip()
-            if choice in ['1', '2', '3']:
+            choice = input("Enter your choice (1-5): ").strip()
+            if choice in ['1', '2', '3', '4', '5']:
                 return choice
             else:
-                print("❌ Invalid choice! Please enter 1, 2, or 3.")
+                print("❌ Invalid choice! Please enter 1-5.")
                 
     def get_multiline_input(self, prompt):
         """Get multiline input from user."""
@@ -218,9 +271,9 @@ class InteractiveAES:
             
             print("\n✅ ENCRYPTION SUCCESSFUL!")
             print("=" * 50)
-            print(f"📝 Original text length: {len(plaintext)} characters")
-            print(f"🔒 Encrypted length: {len(encrypted)} characters")
-            print("\n🔐 ENCRYPTED TEXT (Base64):")
+            print(f"📏 Original text length: {len(plaintext)} characters")
+            print(f"🔐 Encrypted length: {len(encrypted)} characters")
+            print("\n📝 ENCRYPTED TEXT (Base64):")
             print("-" * 30)
             print(encrypted)
             print("-" * 30)
@@ -258,7 +311,7 @@ class InteractiveAES:
             print("\n✅ DECRYPTION SUCCESSFUL!")
             print("=" * 50)
             print(f"🔐 Encrypted text length: {len(encrypted_text)} characters")
-            print(f"📝 Decrypted text length: {len(decrypted)} characters")
+            print(f"📄 Decrypted text length: {len(decrypted)} characters")
             print("\n📄 DECRYPTED TEXT:")
             print("-" * 30)
             print(decrypted)
@@ -271,24 +324,132 @@ class InteractiveAES:
             print("   • Corrupted or invalid encrypted data")
         except Exception as e:
             print(f"❌ Decryption error: {e}")
+
+    def encrypt_file(self):
+        """Handle file encryption."""
+        print("\n📄 ENCRYPT FILE")
+        print("-" * 40)
+        
+        # Get input file path
+        input_path = input("Enter input file path: ").strip()
+        if not input_path:
+            print("❌ File path cannot be empty!")
+            return
+        
+        if not os.path.exists(input_path):
+            print(f"❌ File not found: {input_path}")
+            return
+        
+        # Get output file path
+        default_output = input_path + ".encrypted"
+        output_path = input(f"Enter output file path (default: {default_output}): ").strip()
+        if not output_path:
+            output_path = default_output
+        
+        # Get password
+        password = getpass.getpass("Enter password: ")
+        if not password:
+            print("❌ Password cannot be empty!")
+            return
+        
+        try:
+            # Get file size
+            file_size = os.path.getsize(input_path)
+            
+            print(f"\n⏳ Encrypting file ({file_size} bytes)...")
+            self.aes.encrypt_file(input_path, output_path, password)
+            
+            print("\n✅ FILE ENCRYPTION SUCCESSFUL!")
+            print("=" * 50)
+            print(f"📁 Input file: {input_path}")
+            print(f"🔐 Output file: {output_path}")
+            print(f"📏 Original size: {file_size} bytes")
+            print(f"🔐 Encrypted size: {os.path.getsize(output_path)} bytes")
+            
+        except Exception as e:
+            print(f"❌ File encryption failed: {e}")
+
+    def decrypt_file(self):
+        """Handle file decryption."""
+        print("\n📂 DECRYPT FILE")
+        print("-" * 40)
+        
+        # Get input file path
+        input_path = input("Enter encrypted file path: ").strip()
+        if not input_path:
+            print("❌ File path cannot be empty!")
+            return
+        
+        if not os.path.exists(input_path):
+            print(f"❌ File not found: {input_path}")
+            return
+        
+        # Get output file path
+        default_output = input_path.replace(".encrypted", ".decrypted")
+        if default_output == input_path:
+            default_output = input_path + ".decrypted"
+        
+        output_path = input(f"Enter output file path (default: {default_output}): ").strip()
+        if not output_path:
+            output_path = default_output
+        
+        # Get password
+        password = getpass.getpass("Enter password: ")
+        if not password:
+            print("❌ Password cannot be empty!")
+            return
+        
+        try:
+            # Get file size
+            file_size = os.path.getsize(input_path)
+            
+            print(f"\n⏳ Decrypting file ({file_size} bytes)...")
+            self.aes.decrypt_file(input_path, output_path, password)
+            
+            print("\n✅ FILE DECRYPTION SUCCESSFUL!")
+            print("=" * 50)
+            print(f"🔐 Input file: {input_path}")
+            print(f"📁 Output file: {output_path}")
+            print(f"🔐 Encrypted size: {file_size} bytes")
+            print(f"📏 Decrypted size: {os.path.getsize(output_path)} bytes")
+            
+        except ValueError as e:
+            print(f"❌ Decryption failed: {e}")
+            print("💡 Possible reasons:")
+            print("   • Wrong password")
+            print("   • Corrupted or invalid encrypted data")
+        except Exception as e:
+            print(f"❌ File decryption failed: {e}")
             
     def show_help(self):
         """Show help information."""
         print("\n📖 HELP")
         print("=" * 60)
         print("""
-🔐 HOW TO USE THIS TOOL:
+📝 HOW TO USE THIS TOOL:
 
-1. ENCRYPTION (Option 1):
+1. ENCRYPT TEXT (Option 1):
    • Enter a secure password
    • Type or paste your plaintext
    • Get your encrypted text (Base64 format)
    • Save or share the encrypted text
 
-2. DECRYPTION (Option 2):
+2. DECRYPT TEXT (Option 2):
    • Enter the same password used for encryption
    • Paste the encrypted text (Base64)
    • Get your original plaintext back
+
+3. ENCRYPT FILE (Option 3):
+   • Provide the path to your text file
+   • Choose output location (or use default)
+   • Enter a secure password
+   • Get encrypted file
+
+4. DECRYPT FILE (Option 4):
+   • Provide the path to your encrypted file
+   • Choose output location (or use default)
+   • Enter the password used for encryption
+   • Get decrypted file
 
 🔒 SECURITY FEATURES:
 • AES-256-GCM encryption
@@ -300,7 +461,7 @@ class InteractiveAES:
 • Use strong passwords (8+ characters recommended)
 • Don't lose your password - data cannot be recovered
 • Keep your encrypted data and passwords separate
-• Test with small messages first
+• Test with small messages/files first
 
 ⚠️  IMPORTANT:
 • If you forget your password, your data cannot be recovered
@@ -326,12 +487,16 @@ class InteractiveAES:
                 elif choice == '2':
                     self.decrypt_text()
                 elif choice == '3':
+                    self.encrypt_file()
+                elif choice == '4':
+                    self.decrypt_file()
+                elif choice == '5':
                     print("\n👋 Thank you for using AES Encryption Tool!")
                     print("🔒 Stay secure!")
                     break
                 
                 # Pause before next operation
-                if choice in ['1', '2']:
+                if choice in ['1', '2', '3', '4']:
                     input("\nPress Enter to continue...")
                     self.clear_screen()
                     self.print_banner()
@@ -395,4 +560,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
